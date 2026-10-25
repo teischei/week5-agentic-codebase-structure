@@ -1,6 +1,6 @@
 # Week 5 Writeup: The Link Shortener
 
-## Root guidance, AGENTS.md
+## Root guidance AGENTS.md
 
 I put the general information an agent needs for every task in `AGENTS.md`. It explains that this project is a small FastAPI and SQLite link shortener, identifies the important files, and gives the commands for setup, testing, and running the server. The guide gives boundaries and a workflow from planning through verification. This information should be broadly available because an agent needs it before making any change in the repository.
 
