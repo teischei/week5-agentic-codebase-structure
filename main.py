@@ -20,6 +20,7 @@ from pydantic import BaseModel
 
 DB_PATH = Path(__file__).parent / "links.db"
 ALPHABET = string.ascii_letters + string.digits
+RESERVED_ALIASES = {"docs", "redoc", "openapi.json", "shorten"}
 
 app = FastAPI(title="Link Shortener")
 
@@ -59,12 +60,28 @@ def encode(n: int) -> str:
 
 class ShortenRequest(BaseModel):
     url: str
+    alias: str | None = None
 
 
 @app.post("/shorten")
 def shorten(req: ShortenRequest):
     if not req.url.startswith(("http://", "https://")):
         raise HTTPException(status_code=400, detail="url must start with http:// or https://")
+
+    if req.alias is not None:
+        alias = req.alias.strip()
+        if not alias:
+            raise HTTPException(status_code=400, detail="alias must not be blank")
+        if "/" in alias or alias in RESERVED_ALIASES:
+            raise HTTPException(status_code=400, detail="alias is not available")
+        with closing(get_db()) as conn:
+            try:
+                conn.execute("INSERT INTO links (code, url) VALUES (?, ?)", (alias, req.url))
+                conn.commit()
+            except sqlite3.IntegrityError:
+                raise HTTPException(status_code=409, detail="alias already in use")
+        return {"code": alias, "short_url": f"/{alias}"}
+
     with closing(get_db()) as conn:
         cur = conn.execute("INSERT INTO links (url) VALUES (?)", (req.url,))
         row_id = cur.lastrowid
